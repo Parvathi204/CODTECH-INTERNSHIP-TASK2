@@ -1,0 +1,89 @@
+#importing necessary modules
+import pandas as pd
+import numpy as np
+from sklearn.cluster import KMeans
+from sklearn.metrics import silhouette_score
+from sklearn.preprocessing import StandardScaler
+import matplotlib.pyplot as plt
+
+# Initialize data for books and members
+books_data = {
+    "BookID": [1, 2, 3, 4, 5],
+    "Title": ["1984", "To Kill a Mockingbird", "The Great Gatsby", "Moby Dick", "War and Peace"],
+    "Author": ["George Orwell", "Harper Lee", "F. Scott Fitzgerald", "Herman Melville", "Leo Tolstoy"],
+    "Available": [True, True, True, True, True]
+}
+
+members_data = {
+    "MemberID": [1, 2, 3],
+    "Name": ["Alice", "Bob", "Charlie"],
+    "BorrowedBooks": [[] for _ in range(3)]
+}
+
+# Convert to DataFrame
+books_df = pd.DataFrame(books_data)
+members_df = pd.DataFrame(members_data)
+
+# Borrow a book
+def borrow_book(member_id, book_id):
+    global books_df, members_df
+    book_row = books_df.loc[books_df["BookID"] == book_id]
+    if not book_row.empty and book_row["Available"].iloc[0]:
+        books_df.loc[books_df["BookID"] == book_id, "Available"] = False
+        members_df.loc[members_df["MemberID"] == member_id, "BorrowedBooks"].iloc[0].append(book_id)
+        print(f"Book '{book_row['Title'].iloc[0]}' borrowed by {members_df.loc[members_df['MemberID'] == member_id, 'Name'].iloc[0]}.")
+    else:
+        print("Book not available or invalid ID.")
+
+# Return a book
+def return_book(member_id, book_id):
+    global books_df, members_df
+    if book_id in members_df.loc[members_df["MemberID"] == member_id, "BorrowedBooks"].iloc[0]:
+        books_df.loc[books_df["BookID"] == book_id, "Available"] = True
+        members_df.loc[members_df["MemberID"] == member_id, "BorrowedBooks"].iloc[0].remove(book_id)
+        print(f"Book ID {book_id} returned by {members_df.loc[members_df['MemberID'] == member_id, 'Name'].iloc[0]}.")
+    else:
+        print("This book was not borrowed by this member.")
+
+# Example Usage of Library Management System
+borrow_book(1, 1)
+borrow_book(2, 2)
+return_book(1, 1)
+
+#Clustering Analysis (Library Book Data)
+
+# Create a sample dataset: Book features
+np.random.seed(42)
+book_features = {
+    "Pages": np.random.randint(100, 1000, 50),
+    "Popularity": np.random.rand(50) * 100,
+    "BorrowedTimes": np.random.randint(0, 20, 50)
+}
+
+# Convert to DataFrame
+df_books = pd.DataFrame(book_features)
+
+# Standardize the data for clustering
+scaler = StandardScaler()
+scaled_data = scaler.fit_transform(df_books)
+
+# Apply K-Means clustering
+kmeans = KMeans(n_clusters=3, random_state=42)
+labels = kmeans.fit_predict(scaled_data)
+df_books['Cluster'] = labels
+
+# Evaluate clustering performance using silhouette score
+silhouette_avg = silhouette_score(scaled_data, labels)
+print(f"Silhouette Score for Clustering: {silhouette_avg}")
+
+# Display the clustered data
+print("\nClustered Data:")
+print(df_books)
+
+# Visualize the clusters in 2D 
+plt.scatter(scaled_data[:, 0], scaled_data[:, 1], c=labels, cmap='viridis', s=50)
+plt.scatter(kmeans.cluster_centers_[:, 0], kmeans.cluster_centers_[:, 1], c='red', marker='x')
+plt.title("K-Means Clustering on Library Books")
+plt.xlabel("(Standardized Pages)")
+plt.ylabel("(Standardized Popularity)")
+plt.show()
